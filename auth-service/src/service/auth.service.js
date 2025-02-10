@@ -1,0 +1,63 @@
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
+import { StatusCodes } from "http-status-codes";
+import userRepository from "../repository/auth.repository.js";
+import { AppError } from "../middleware/errorHandler.js";
+import { config } from "../config/index.js";
+
+class AuthService {
+  async signup(email, password, name) {
+    if (!email || !password || !name) {
+      throw new AppError(StatusCodes.BAD_REQUEST, "Credentials missing");
+    }
+    const existingUser = await userRepository.findByEmail(email);
+    if (existingUser) {
+      throw new AppError(StatusCodes.BAD_REQUEST, "User already exists");
+    }
+    const hashedPassword = await bcrypt.hash(password, 10);
+    return userRepository.createUser({ email, password: hashedPassword, name });
+  }
+
+  async login(email, password) {
+    if (!email || !password) {
+      throw new AppError(StatusCodes.BAD_REQUEST, "Missing credentials");
+    }
+    const user = await userRepository.findByEmail(email);
+    if (!user) {
+      throw new AppError(StatusCodes.UNAUTHORIZED, "Invalid credentials");
+    }
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      throw new AppError(StatusCodes.UNAUTHORIZED, "Invalid credentials");
+    }
+    return user;
+  }
+
+  async getUser(userId) {
+    return await userRepository.findById(userId);
+  }
+
+  async getUserById(userId) {
+    return await userRepository.getUserById(userId);
+  }
+
+  async logout() {}
+
+  async generateToken(user) {
+    const access_token = jwt.sign(
+      { id: user.id, email: user.email, name: user.name },
+      config.jwtSecret,
+      {
+        expiresIn: config.cookieOptions.accessToken.maxAge,
+      }
+    );
+
+    const refresh_token = jwt.sign({ id: user.id }, config.jwtSecret, {
+      expiresIn: config.cookieOptions.refreshToken.maxAge,
+    });
+
+    return { access_token, refresh_token };
+  }
+}
+
+export default new AuthService();
