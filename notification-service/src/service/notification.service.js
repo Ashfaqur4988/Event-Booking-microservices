@@ -1,7 +1,9 @@
+import logger from "../config/logger.js";
 import transport from "../config/nodemailer.js";
 
 class NotificationService {
   async sendEmailToUser(eventOrderData) {
+    logger.info("Notification service - Sending email to user");
     try {
       const {
         bookingId,
@@ -108,9 +110,11 @@ class NotificationService {
         html: htmlContent,
       });
 
-      console.log("Message sent:", info.messageId);
+      logger.info("Notification service - Email sent to user");
+      logger.info("Message sent:", info.messageId);
     } catch (error) {
-      console.log("Error while sending email", error);
+      logger.error("Notification service - Error while sending email");
+      logger.error(error);
     }
   }
 }

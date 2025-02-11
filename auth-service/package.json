@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
+    "consumer": "node src/kafka/consumer.js",
     "dev": "nodemon src/index.js",
     "start": "node src/index.js"
   },
@@ -23,7 +24,8 @@
     "jsonwebtoken": "^9.0.2",
     "kafkajs": "^2.2.4",
     "mongodb": "^6.13.0",
-    "prisma": "^6.3.1"
+    "prisma": "^6.3.1",
+    "winston": "^3.17.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.9"

@@ -1,6 +1,7 @@
 import { Kafka } from "kafkajs";
 import eventRepository from "../repository/event.repository.js";
 import { produceMessage } from "./producer.js"; // Make sure producer.js has proper error handling
+import logger from "../config/logger.js";
 
 const kafka = new Kafka({
   clientId: "booking-service", // More descriptive client ID
@@ -11,43 +12,45 @@ const consumer = kafka.consumer({ groupId: "event-service-group" });
 
 const consumeMessage = async () => {
   try {
-    console.log("Event service consumer connecting...");
+    logger.info("Event service consumer connecting...");
     await consumer.connect();
-    console.log("Event service consumer connected.");
+    logger.info("Event service consumer connected.");
 
     await consumer.subscribe({ topic: "order-created", fromBeginning: true });
-    console.log("Event service consumer subscribed to topic.");
+    logger.info("Event service consumer subscribed to topic: order-created.");
 
     await consumer.subscribe({
       topic: "get-event-details",
       fromBeginning: true,
     });
-    console.log(
-      "--------Event service consumer subscribed to get user detail topic. "
+    logger.info(
+      "Event service consumer subscribed to get event details topic."
     );
 
     await consumer.run({
       eachMessage: async ({ topic, partition, message }) => {
         try {
           const data = JSON.parse(message.value.toString());
-          console.log("--------Received message:", data);
+          logger.info("Event service consumer received message.");
 
           if (topic === "order-created") {
-            console.log("Decreasing seats...");
+            logger.info("Event service consumer received message for topic.");
+
             await eventRepository.decreaseSeats(data.eventId, data.seats);
-            console.log("Seats decreased.");
+            logger.info("Seats decreased.");
 
             await produceMessage("reduced-seats", {
               bookingId: data.bookingId,
               eventId: data.eventId,
               userId: data.userId,
             });
-            console.log("Produced reduced-seats message.");
+            logger.info("Produced reduced-seats message.");
           }
 
           if (topic === "get-event-details") {
-            console.log("Getting event details...");
+            logger.info("Event service consumer received message for topic.");
             const eventData = await eventRepository.getEventById(data.eventId);
+            logger.info("Event data fetched.");
 
             await produceMessage("event-details", {
               orderId: data.orderId,
@@ -58,17 +61,13 @@ const consumeMessage = async () => {
             });
           }
         } catch (innerError) {
-          console.log("Error processing message:", innerError);
-          // Important: Decide on a strategy here:
-          // 1. Retry the message (with backoff)
-          // 2. Dead-letter queue (DLQ) - Produce the message to a separate "dead-letter" topic for later analysis.
-          // 3. Skip the message (least recommended)
+          logger.error("Error processing message:", innerError);
         }
       },
     });
   } catch (error) {
-    console.error("Error connecting or running consumer:", error);
+    logger.error("Error connecting or running consumer:", error);
   }
 };
 
-export { consumeMessage };
+consumeMessage();

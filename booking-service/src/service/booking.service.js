@@ -4,17 +4,21 @@ import { AppError } from "../middlewares/errorHandler.js";
 import bookingRepository from "../repository/booking.repository.js";
 import cartRepository from "../repository/cart.repository.js";
 import axios from "axios";
+import logger from "../config/logger.js";
 
 class BookingService {
   async confirmBooking(userId) {
+    logger.info(`Confirm booking service`);
     let cartData = await cartRepository.getCartByUserId(userId);
     if (!cartData) {
+      logger.error("Cart not found");
       throw new AppError(StatusCodes.NOT_FOUND, "Cart not found");
     }
     const event = await axios.get(
       `${config.EVENT_SERVICE_URL}/${cartData.eventId}`
     );
     if (event.seats <= 0) {
+      logger.error("Seats not available");
       throw new AppError(StatusCodes.NOT_FOUND, "Seats not available");
     }
     const orderData = {
@@ -39,14 +43,16 @@ class BookingService {
   }
 
   async updateBookingStatus(bookingId, status) {
+    logger.info(`Update booking status service`);
     const updatedBooking = await bookingRepository.updateBookingStatus(
       bookingId,
       status
     );
 
-    console.log(
+    logger.info(
       "before sending message from booking producer, message: BOOKING_CONFIRMED "
     );
+
     await produceMessage("booking-confirmed", {
       orderId: updatedBooking.id,
       userId: updatedBooking.userId,
@@ -56,7 +62,7 @@ class BookingService {
       totalAmount: updatedBooking.totalAmount,
       status: updatedBooking.status,
     });
-    console.log(
+    logger.info(
       "after sending message from booking producer, message: BOOKING_CONFIRMED "
     );
 
@@ -64,14 +70,17 @@ class BookingService {
   }
 
   async getBookings() {
+    logger.info(`Get bookings service`);
     return await bookingRepository.getBookings();
   }
 
   async getBookingById(bookingId) {
+    logger.info(`Get booking by id service`);
     return await bookingRepository.getBookingById(bookingId);
   }
 
   async getBookingByUserId(userId) {
+    logger.info(`Get booking by user id service`);
     return await bookingRepository.getBookingByUserId(userId);
   }
 }

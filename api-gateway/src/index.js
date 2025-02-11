@@ -1,9 +1,8 @@
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
 import serviceRoutes from "./routes/index.routes.js";
-
-dotenv.config();
+import config from "./config/index.js";
+import logger from "./config/logger.js";
 
 const app = express();
 
@@ -16,6 +15,6 @@ app.get("/test", (req, res) => {
   res.send("API Gateway");
 });
 
-app.listen(process.env.PORT, () => {
-  console.log(`API Gateway listening on port ${process.env.PORT}`);
+app.listen(process.env.PORT || 3000, () => {
+  logger.info(`API Gateway listening on port ${config.PORT}`);
 });

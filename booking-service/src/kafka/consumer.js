@@ -1,5 +1,6 @@
 import { Kafka } from "kafkajs";
 import bookingService from "../service/booking.service.js";
+import logger from "../config/logger.js";
 
 const kafka = new Kafka({
   clientId: "booking service",
@@ -12,25 +13,25 @@ const consumer = kafka.consumer({
 
 const consumeMessage = async () => {
   await consumer.connect();
-  console.log("booking service consumer connected");
+  logger.info("booking service consumer connected");
 
   await consumer.subscribe({ topic: "reduced-seats", fromBeginning: true });
-  console.log("booking service consumer subscribed to topic");
+  logger.info("booking service consumer subscribed to topic");
 
   await consumer.run({
     eachMessage: async ({ topic, partition, message }) => {
       const data = JSON.parse(message.value.toString());
-      console.log(
-        "-----------booking service consumer received message ",
-        data
-      );
+      logger.info("booking service consumer received message ", data);
 
       if (topic === "reduced-seats") {
+        logger.info(
+          "booking service consumer received message for topic: reduced-seats"
+        );
         await bookingService.updateBookingStatus(data.bookingId, "CONFIRMED");
-        console.log("-------booking service consumer updated booking status");
+        logger.info("booking service consumer updated booking status");
       }
     },
   });
 };
 
-export { consumeMessage };
+consumeMessage();

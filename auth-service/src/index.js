@@ -4,7 +4,7 @@ import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 import authRoutes from "./routes/auth.routes.js";
 import { globalErrorHandler } from "./middleware/errorHandler.js";
-import { consumeMessages } from "./kafka/consumer.js";
+import logger from "./config/logger.js";
 
 dotenv.config();
 
@@ -19,7 +19,6 @@ app.use("/", authRoutes);
 
 app.use(globalErrorHandler);
 
-app.listen(process.env.PORT, () => {
-  consumeMessages();
-  console.log(`auth service listening on port ${process.env.PORT}`);
+app.listen(process.env.PORT || 3001, () => {
+  logger.info("auth service listening on port ", process.env.PORT);
 });

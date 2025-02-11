@@ -1,6 +1,7 @@
 import { Kafka } from "kafkajs";
 import { produceMessage } from "./producer.js";
 import notificationService from "../service/notification.service.js";
+import logger from "../config/logger.js";
 
 const kafka = new Kafka({
   clientId: "notification-service",
@@ -20,20 +21,17 @@ const consumeMessages = async () => {
   await consumer.run({
     eachMessage: async ({ topic, message }) => {
       const data = JSON.parse(message.value.toString());
-      console.log(`Received message on ${topic}:`, data);
+      logger.info("Notification service consumer received message.");
 
       if (topic === "booking-confirmed") {
-        console.log("-----------------Received order-confirmed message:", data);
+        logger.info("Notification service consumer received message.");
 
         // Store initial order data
         dataStore.set(data.id, { order: data, user: null, event: null });
 
         // Request user & event details
-        console.log({
-          orderId: data.id,
-          userId: data.userId,
-          eventId: data.eventId,
-        });
+        logger.info("Requesting user & event details");
+
         await produceMessage("get-user-details", {
           orderId: data.id,
           userId: data.userId,
@@ -43,14 +41,18 @@ const consumeMessages = async () => {
           eventId: data.eventId,
         });
       } else if (topic === "user-details") {
-        console.log("-----------------Received user-details message:", data);
+        logger.info(
+          "Notification service consumer received user-details message."
+        );
         const { orderId, userId, name, email } = data;
         if (dataStore.has(orderId)) {
           dataStore.get(orderId).user = { userId, name, email };
           triggerNotificationIfComplete(orderId);
         }
       } else if (topic === "event-details") {
-        console.log("-----------------Received event-details message:", data);
+        logger.info(
+          "Notification service consumer received event-details message."
+        );
 
         const { orderId, eventId, location, image, title } = data;
         if (dataStore.has(orderId)) {
@@ -79,10 +81,7 @@ const triggerNotificationIfComplete = async (orderId) => {
       image: orderData.event.image,
       title: orderData.event.title,
     };
-    console.log(
-      "✅ All data received, sending email notification:",
-      eventOrderData
-    );
+    logger.info("All details received, sending email notification.");
 
     await notificationService.sendEmailToUser(eventOrderData);
 
@@ -91,4 +90,4 @@ const triggerNotificationIfComplete = async (orderId) => {
   }
 };
 
-export { consumeMessages };
+consumeMessages();

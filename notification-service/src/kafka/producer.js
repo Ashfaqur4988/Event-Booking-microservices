@@ -1,27 +1,32 @@
-import { Kafka } from "kafkajs";
+import { Kafka, logLevel } from "kafkajs";
+import logger from "../config/logger.js";
 
 const kafka = new Kafka({
   clientId: "notification service",
   brokers: ["192.168.56.165:9092"],
+  logLevel: logLevel.INFO,
+  retry: {
+    initialRetryTime: 300,
+    retries: 5,
+  },
 });
 
 const producer = kafka.producer();
 
 const produceMessage = async (topic, message) => {
-  console.log("notification service producer");
+  logger.info("notification service producer");
   await producer.connect();
-  console.log("notification service producer connected");
-  console.log("notification service producer before sending message");
+  logger.info("notification service producer connected");
 
   await producer.send({
     topic,
     messages: [{ value: JSON.stringify(message) }],
   });
-  console.log("notification service producer after sending message");
+  logger.info("notification service producer after sending message");
 
   await producer.disconnect();
 
-  console.log("notification service producer disconnected");
+  logger.info("notification service producer disconnected");
 };
 
 export { produceMessage };
